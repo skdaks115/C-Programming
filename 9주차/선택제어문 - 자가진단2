@@ -1,0 +1,15 @@
+#include <stdio.h>
+
+int main() {
+    int a, b;
+    int num;
+    scanf("%d %d", &a, &b);
+    num = b + 100 - a;
+    printf("%d\n", num);
+
+    if (num > 0) {
+        printf("Obesity\nNeed control");
+    }
+
+    return 0;
+}
