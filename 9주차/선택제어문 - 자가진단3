@@ -1,0 +1,17 @@
+#include <stdio.h>
+
+int main() {
+    int age;
+    int left;
+    scanf("%d", &age);
+    left = 20 - age;
+
+    if ( age >= 20 ) {
+        printf("adult");
+    }
+    else {
+        printf("%d", left);
+        printf(" years later");
+    }
+    return 0;
+}
