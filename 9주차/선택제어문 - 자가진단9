@@ -1,0 +1,16 @@
+#include <stdio.h>
+
+int main() {
+    int a, b, c;
+    int min;
+
+    scanf("%d %d %c", &a, &b, &c);
+
+    min = (a < b) ? a : b;
+
+    min = (min < c) ? min : c;
+
+    printf("%d", min);
+
+    return 0;
+}
