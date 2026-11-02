@@ -1,0 +1,25 @@
+#include <stdio.h>
+
+int main() {
+    int num;
+    int cnt = 0;
+    int sum = 0;
+    double avg;
+
+    scanf("%d", &num);
+
+    while (num != 0) {
+        cnt++;
+        sum += num;
+
+        scanf("%d", &num);
+    }
+
+    avg = (double)sum / cnt;
+
+    printf("cnt = %d\n", cnt);
+    printf("sum = %d\n", sum);
+    printf("avg = %.2f\n", avg);
+
+    return 0;
+}
