@@ -1,0 +1,22 @@
+#include <stdio.h>
+
+int main() {
+    int scores[5][4];
+    int sums[5] = {0};
+    double avgs[5];
+
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 4; j++) {
+            scanf("%d", &scores[i][j]);
+            sums[i] += scores[i][j];
+        }
+        // 정확한 소수 첫째 자리 반올림을 위해 0.05 더하기
+        avgs[i] = ((double)sums[i] / 4.0) + 0.05;
+    }
+
+    for (int i = 0; i < 5; i++) {
+        printf("%d %.1f\n", sums[i], avgs[i]);
+    }
+
+    return 0;
+}
