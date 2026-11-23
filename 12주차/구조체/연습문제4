@@ -1,0 +1,25 @@
+#include <stdio.h>
+
+struct Student {
+    char name[21];
+    int score;
+};
+
+int main() {
+    struct Student students[5];
+
+    for (int i = 0; i < 5; i++) {
+        scanf("%20s %d", students[i].name, &students[i].score);
+    }
+
+    int top_idx = 0;
+    for (int i = 1; i < 5; i++) {
+        if (students[i].score > students[top_idx].score) {
+            top_idx = i;
+        }
+    }
+
+    printf("%s %d\n", students[top_idx].name, students[top_idx].score);
+
+    return 0;
+}
