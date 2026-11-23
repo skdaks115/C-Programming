@@ -1,0 +1,16 @@
+#include <stdio.h>
+
+int main() {
+    char my_name[21] = "Yejun";
+    int my_age = 12;
+
+    char friend_name[21];
+    int friend_age;
+
+    scanf("%20s %d", friend_name, &friend_age);
+
+    printf("Your name: %s, age: %d\n", my_name, my_age);
+    printf("Friend's name: %s, age: %d\n", friend_name, friend_age);
+
+    return 0;
+}
