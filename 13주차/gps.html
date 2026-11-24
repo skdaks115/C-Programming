@@ -1,0 +1,406 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>GPS 이동 경로 시각화 시스템</title>
+
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+        }
+
+        header {
+            background-color: #17466e;
+            color: white;
+            padding: 18px;
+            text-align: center;
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        .info-box {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .info-box p {
+            margin: 7px 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 600px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+        }
+
+        button {
+            background-color: #1675c1;
+            color: white;
+            border: none;
+            padding: 11px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #10558e;
+        }
+
+        .legend {
+            background: white;
+            padding: 12px;
+            line-height: 25px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+        }
+
+        .legend span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 7px;
+        }
+
+        footer {
+            text-align: center;
+            color: #777;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>GPS 이동 경로 시각화 시스템</h2>
+</header>
+
+<div class="container">
+
+    <div class="info-box">
+
+        <h3>GPS 데이터 정보</h3>
+
+        <p>
+            GPS 데이터 개수 :
+            <strong id="gpsCount">0</strong> 개
+        </p>
+
+        <p>
+            현재 상태 :
+            <strong id="status">데이터 불러오는 중...</strong>
+        </p>
+
+        <button onclick="loadGPSData()">
+            GPS 데이터 새로고침
+        </button>
+
+    </div>
+
+    <!-- 지도 출력 영역 -->
+    <div id="map"></div>
+
+</div>
+
+<footer>
+    GPS 이동 경로 시각화 시스템
+    | C언어 JSON 데이터 연동
+</footer>
+
+
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+    // 지도 초기 설정
+    const map = L.map('map').setView(
+        [42.363400, -71.098465],
+        15
+    );
+
+    // OpenStreetMap 지도 타일
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+
+            maxZoom: 19
+        }
+    ).addTo(map);
+
+
+    // GPS 마커와 경로를 저장할 그룹
+    let markerGroup = L.layerGroup().addTo(map);
+
+    let routeLine = null;
+
+
+    // 속도에 따른 마커 색상 결정
+    function getSpeedColor(info) {
+
+        const match = String(info).match(
+            /Speed\s*=\s*(-?\d+(?:\.\d+)?)/i
+        );
+
+        if (!match) {
+            return "blue";
+        }
+
+        const speed = Number(match[1]);
+
+        if (speed < 18) {
+            return "green";
+        }
+        else if (speed <= 20) {
+            return "orange";
+        }
+        else {
+            return "red";
+        }
+    }
+
+
+    // GPS 데이터 불러오기
+    async function loadGPSData() {
+
+        try {
+
+            document.getElementById("status").innerText =
+                "데이터 불러오는 중...";
+
+
+            // 기존 마커 제거
+            markerGroup.clearLayers();
+
+            if (routeLine) {
+                map.removeLayer(routeLine);
+                routeLine = null;
+            }
+
+
+            // output.json 파일 읽기
+            const response = await fetch(
+                "output.json?t=" + Date.now()
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "JSON 파일을 불러오지 못했습니다."
+                );
+            }
+
+
+            // JSON 데이터 변환
+            const gpsData = await response.json();
+
+
+            if (!Array.isArray(gpsData) || gpsData.length === 0) {
+                throw new Error(
+                    "GPS 데이터가 비어 있거나 배열 형식이 아닙니다."
+                );
+            }
+
+
+            // 이동 경로 좌표 저장
+            let coordinates = [];
+
+
+            // GPS 데이터 반복 처리
+            gpsData.forEach((gps, index) => {
+
+                const lat = Number(gps.latitude);
+                const lng = Number(gps.longitude);
+
+                if (
+                    !Number.isFinite(lat) ||
+                    !Number.isFinite(lng) ||
+                    lat < -90 || lat > 90 ||
+                    lng < -180 || lng > 180
+                ) {
+                    console.warn(
+                        "잘못된 GPS 데이터:", gps
+                    );
+                    return;
+                }
+
+
+                // 지도 경로 좌표 추가
+                coordinates.push([lat, lng]);
+
+
+                // 속도에 따른 색상
+                const color = getSpeedColor(gps.info);
+
+
+                // GPS 위치 마커 생성
+                const marker = L.circleMarker(
+                    [lat, lng],
+                    {
+                        radius: 7,
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.9,
+                        weight: 2
+                    }
+                );
+
+
+                // 마커 클릭 시 GPS 정보 표시
+                marker.bindPopup(
+                    `
+                    <b>GPS 위치 ${index + 1}</b>
+                    <hr>
+                    위도 : ${lat}<br>
+                    경도 : ${lng}<br>
+                    정보 : ${gps.info ?? "정보 없음"}
+                    `
+                );
+
+
+                // 지도에 마커 추가
+                markerGroup.addLayer(marker);
+
+            });
+
+
+            // 이동 경로 선 그리기
+            if (coordinates.length > 1) {
+
+                routeLine = L.polyline(
+                    coordinates,
+                    {
+                        color: "#1675c1",
+                        weight: 4,
+                        opacity: 0.8
+                    }
+                ).addTo(map);
+
+
+                // 전체 경로가 보이도록 지도 조정
+                map.fitBounds(
+                    routeLine.getBounds(),
+                    {
+                        padding: [40, 40]
+                    }
+                );
+
+            }
+            else if (coordinates.length === 1) {
+
+                map.setView(
+                    coordinates[0],
+                    16
+                );
+
+            }
+            else {
+
+                throw new Error(
+                    "유효한 GPS 좌표가 없습니다."
+                );
+
+            }
+
+
+            // GPS 데이터 개수 표시
+            document.getElementById("gpsCount").innerText =
+                coordinates.length;
+
+
+            document.getElementById("status").innerText =
+                "GPS 데이터 로딩 완료";
+
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            document.getElementById("status").innerText =
+                "오류 : " + error.message;
+
+            alert(
+                "GPS 데이터를 불러오는 중 오류가 발생했습니다.\n" +
+                error.message
+            );
+
+        }
+
+    }
+
+
+    // 지도 범례 추가
+    const legend = L.control({
+        position: "topright"
+    });
+
+    legend.onAdd = function(map) {
+
+        const div = L.DomUtil.create(
+            "div",
+            "legend"
+        );
+
+        div.innerHTML = `
+            <b>속도 범례</b><br>
+            <span style="background:green"></span>
+            저속 (&lt; 18)<br>
+
+            <span style="background:orange"></span>
+            중속 (18 ~ 20)<br>
+
+            <span style="background:red"></span>
+            고속 (&gt; 20)
+        `;
+
+        return div;
+
+    };
+
+    legend.addTo(map);
+
+
+    // 페이지가 열리면 JSON 데이터 자동 실행
+    window.onload = function() {
+
+        loadGPSData();
+
+    };
+
+</script>
+
+</body>
+</html>
